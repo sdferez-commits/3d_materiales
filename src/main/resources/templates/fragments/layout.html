@@ -53,8 +53,7 @@
     <div class="user-chip dropdown">
       <div data-bs-toggle="dropdown">
         <div class="user-avatar">
-          <span sec:authentication="name"
-                th:text="${#strings.toUpperCase(#strings.substring(#authentication.name,0,2))}">AD</span>
+          <span sec:authentication="name">AD</span>
         </div>
         <span sec:authentication="name">Admin</span>
         <i class="bi bi-chevron-down" style="font-size:.6rem"></i>

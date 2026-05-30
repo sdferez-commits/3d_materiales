@@ -20,7 +20,7 @@
           </button>
           <button th:each="c : ${categorias}" class="tab-btn"
                   th:classappend="${catSel==c}?'active'"
-                  th:onclick="'setTab(this,\''+${c}+'\')'">
+                  th:onclick="|setTab(this,'${c}')|">
             <span th:text="${c}"></span>
           </button>
         </div>
@@ -80,7 +80,7 @@
                 <td class="cell-loc" th:text="${a.ubicacion}"></td>
                 <td class="text-center">
                   <button class="btn-icon me-1" title="Editar"
-                          th:onclick="'openEdit('+${a.id}+',\''+${a.codigo}+'\',\''+${a.nombre}+'\',\''+${a.categoria}+'\','+${a.stock}+','+${a.stockMinimo}+',\''+${a.ubicacion}+'\')'">
+                          th:attr="onclick='openEdit('+${a.id}+',\''+${a.codigo}+'\',\''+${a.nombre}+'\',\''+${a.categoria}+'\','+${a.stock}+','+${a.stockMinimo}+',\''+${a.ubicacion}+'\')'">
                     <i class="bi bi-pencil-fill"></i>
                   </button>
                   <form th:action="@{/inventario/eliminar/{id}(id=${a.id})}" method="post" class="d-inline"
