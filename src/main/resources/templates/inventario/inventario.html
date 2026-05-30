@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{fragments/layout :: head('Inventario')}"></head>
+<body>
+<div id="app">
+  <aside th:replace="~{fragments/layout :: sidebar('inventario')}"></aside>
+  <div class="main-wrapper">
+    <header th:replace="~{fragments/layout :: topbar('Inventario','bi-boxes')}"></header>
+    <main class="main-content">
+      <div th:replace="~{fragments/layout :: flash}"></div>
+
+      <div class="page-title"><i class="bi bi-boxes" style="color:var(--accent-blue)"></i> Inventario</div>
+
+      <div class="table-card">
+
+        <!-- Tabs -->
+        <div class="tab-bar">
+          <button class="tab-btn" th:classappend="${catSel==null}?'active'" onclick="setTab(this,'')" data-cat="">
+            <i class="bi bi-grid"></i> Todos
+          </button>
+          <button th:each="c : ${categorias}" class="tab-btn"
+                  th:classappend="${catSel==c}?'active'"
+                  th:onclick="'setTab(this,\''+${c}+'\')'">
+            <span th:text="${c}"></span>
+          </button>
+        </div>
+
+        <!-- Filtros -->
+        <form th:action="@{/inventario}" method="get" class="filter-bar">
+          <input name="q" th:value="${q}" type="text" class="f-input"
+                 placeholder="Buscar artículo o código…" style="width:210px"/>
+          <select name="cat" class="f-input">
+            <option value="">Todas las categorías</option>
+            <option th:each="c : ${categorias}" th:value="${c}" th:text="${c}"
+                    th:selected="${c==catSel}"></option>
+          </select>
+          <select name="estado" class="f-input">
+            <option value="">Todos los stocks</option>
+            <option value="NORMAL"  th:selected="${estadoSel=='NORMAL'}">Normal</option>
+            <option value="BAJO"    th:selected="${estadoSel=='BAJO'}">Bajo</option>
+            <option value="CRITICO" th:selected="${estadoSel=='CRITICO'}">Crítico</option>
+          </select>
+          <button type="submit" class="btn-primary-custom"><i class="bi bi-search"></i> Buscar</button>
+          <a th:href="@{/inventario}" class="btn-outline-custom"><i class="bi bi-x-lg"></i> Limpiar</a>
+          <button type="button" class="btn-primary-custom ms-auto"
+                  data-bs-toggle="modal" data-bs-target="#modal-art" onclick="openAdd()">
+            <i class="bi bi-plus-lg"></i> Agregar
+          </button>
+        </form>
+
+        <!-- Tabla -->
+        <div class="table-card-header" style="border-top:1px solid var(--border);border-radius:0">
+          <div class="table-card-title"><i class="bi bi-table" style="color:var(--accent-blue)"></i> Artículos</div>
+          <span class="table-count" th:text="'Mostrando '+${#lists.size(articulos)}+' artículos'"></span>
+        </div>
+        <div class="table-responsive">
+          <table class="inv-table">
+            <thead>
+              <tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Stock</th><th>Nivel</th><th>Ubicación</th><th class="text-center">Acciones</th></tr>
+            </thead>
+            <tbody>
+              <tr th:each="a,i : ${articulos}"
+                  th:style="'animation-delay:'+${i.index*28}+'ms'"
+                  th:classappend="${a.estadoStock=='BAJO'}?'row-low':(${a.estadoStock=='CRITICO'}?'row-crit':'')">
+                <td class="cell-code" th:text="${a.codigo}"></td>
+                <td th:text="${a.nombre}"></td>
+                <td><span th:class="'pill pill-'+${#strings.toLowerCase(#strings.substring(a.categoria,0,4))}"
+                          th:text="${a.categoria}"></span></td>
+                <td class="cell-stock" th:text="${a.stock}"></td>
+                <td>
+                  <div class="bar-wrap">
+                    <div class="bar-bg">
+                      <div class="bar-fill"
+                           th:classappend="${a.estadoStock=='NORMAL'}?'fill-ok':(${a.estadoStock=='BAJO'}?'fill-low':'fill-crit')"
+                           th:style="'width:'+${a.porcentajeStock}+'%'"></div>
+                    </div>
+                    <span class="bar-min" th:text="'/'+${a.stockMinimo}"></span>
+                  </div>
+                </td>
+                <td class="cell-loc" th:text="${a.ubicacion}"></td>
+                <td class="text-center">
+                  <button class="btn-icon me-1" title="Editar"
+                          th:onclick="'openEdit('+${a.id}+',\''+${a.codigo}+'\',\''+${a.nombre}+'\',\''+${a.categoria}+'\','+${a.stock}+','+${a.stockMinimo}+',\''+${a.ubicacion}+'\')'">
+                    <i class="bi bi-pencil-fill"></i>
+                  </button>
+                  <form th:action="@{/inventario/eliminar/{id}(id=${a.id})}" method="post" class="d-inline"
+                        onsubmit="return confirm('¿Eliminar este artículo?')">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <button type="submit" class="btn-icon del" title="Eliminar">
+                      <i class="bi bi-trash-fill"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              <tr th:if="${#lists.isEmpty(articulos)}">
+                <td colspan="7" class="cell-empty">No se encontraron artículos.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modal-art" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modal-title">Agregar Artículo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="modal-form" th:action="@{/inventario/guardar}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <input type="hidden" id="m-id" name="id"/>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="f-label">Código *</label>
+              <input id="m-code" name="codigo" type="text" class="field-input" placeholder="EL-001" required/>
+            </div>
+            <div class="col-6">
+              <label class="f-label">Nombre *</label>
+              <input id="m-name" name="nombre" type="text" class="field-input" placeholder="Nombre" required/>
+            </div>
+            <div class="col-6">
+              <label class="f-label">Categoría *</label>
+              <select id="m-cat" name="categoria" class="field-input" required>
+                <option value="">-- Seleccionar --</option>
+                <option th:each="c : ${categorias}" th:value="${c}" th:text="${c}"></option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="f-label">Ubicación</label>
+              <input id="m-loc" name="ubicacion" type="text" class="field-input" placeholder="Bodega A"/>
+            </div>
+            <div class="col-6">
+              <label class="f-label">Stock actual *</label>
+              <input id="m-stock" name="stock" type="number" min="0" class="field-input" placeholder="0" required/>
+            </div>
+            <div class="col-6">
+              <label class="f-label">Stock mínimo *</label>
+              <input id="m-min" name="stockMinimo" type="number" min="0" class="field-input" placeholder="5" required/>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-outline-custom" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn-primary-custom"><i class="bi bi-check2"></i> Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:src="@{/js/app.js}"></script>
+<script>
+  function openAdd() {
+    document.getElementById('modal-title').textContent = 'Agregar Artículo';
+    document.getElementById('modal-form').action = '/inventario/guardar';
+    ['m-id','m-code','m-name','m-loc','m-stock','m-min'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('m-cat').value = '';
+  }
+  function openEdit(id, code, name, cat, stock, min, loc) {
+    document.getElementById('modal-title').textContent = 'Editar Artículo';
+    document.getElementById('modal-form').action = '/inventario/actualizar/' + id;
+    document.getElementById('m-id').value    = id;
+    document.getElementById('m-code').value  = code;
+    document.getElementById('m-name').value  = name;
+    document.getElementById('m-cat').value   = cat;
+    document.getElementById('m-stock').value = stock;
+    document.getElementById('m-min').value   = min;
+    document.getElementById('m-loc').value   = loc;
+    new bootstrap.Modal(document.getElementById('modal-art')).show();
+  }
+  function setTab(btn, cat) {
+    window.location.href = '/inventario' + (cat ? '?cat=' + encodeURIComponent(cat) : '');
+  }
+</script>
+</body>
+</html>
